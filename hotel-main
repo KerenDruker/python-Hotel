@@ -1,0 +1,277 @@
+''' Exercise #8. Python for Engineers.'''
+#########################################
+# Question 1 - do not delete this comment
+#########################################
+class Minibar:
+    def __init__(self, drinks, snacks):
+        self.drinks = drinks
+        self.snacks = snacks
+        self.bill = 0
+
+    def __repr__(self):
+        return f"The minibar contains the drinks: {list(self.drinks.keys())}\nAnd the snacks: {list(self.snacks.keys())}\nThe bill for the minibar is: {self.bill}"
+
+    def eat_a_snack(self, snack):
+        if not snack in self.snacks:
+            raise ValueError ('The snack is not in the minibar')
+        price = self.snacks.pop(snack)
+        self.bill+=price
+        
+
+    def drink_a_drink(self, drink):
+        if not drink in self.drinks:
+            raise ValueError ('The drink is not in the minibar')
+        price = self.drinks.pop(drink)
+        self.bill+=price
+
+
+
+
+
+#########################################
+# Question 2 - do not delete this comment
+#########################################
+class RoomError(Exception):
+    #A subclass of Exception that defines a new error type
+    #DO NOT change this class
+    pass
+
+class Room:
+    def __init__(self, minibar, floor, number, guests, clean_level, rank, satisfaction=1.0):
+        self.minibar = minibar
+        self.floor = floor
+        self.number = number
+        
+        new_guests = []
+        for guest in guests:
+            guest = guest.lower()
+            new_guests.append(guest)
+        self.guests = new_guests
+        
+        if type(clean_level) == int:
+            self.clean_level = clean_level
+        else:
+            raise TypeError("The clean level of the room must be an integer") 
+        
+        if type(rank) == int:
+            self.rank = rank
+        else:
+            raise TypeError("The rank of the room must be an integer") 
+       
+        try:
+            satisfaction = float (satisfaction)
+        except ValueError:
+            raise TypeError("The satisfaction level must be a number")
+        self.satisfaction = satisfaction
+        
+        if 1 > clean_level or clean_level > 10:
+            raise ValueError ("The clean level of the room must be a number beween 1 to 10")
+        
+        if 1 > rank or rank > 3:
+             raise ValueError ("The rank of the room must be a number beween 1 to 3")
+        
+        if 1 > satisfaction or satisfaction > 5:
+             raise ValueError ("The satisfaction level of the room must be a number beween 1 to 5")
+    
+    def __repr__(self):
+        p_guests = ""
+        if self.guests == []:
+            p_guests = "empty"
+        else:
+            p_guests+= self.guests[0]
+            i=1
+            while i < len(self.guests):
+                p_guests+=', '+self.guests[i]
+                i+=1
+        
+        return f"{self.minibar}\nfloor: {self.floor}\nnumber: {self.number}\nguests: {p_guests}\nclean_level: {self.clean_level}\nrank: {self.rank}\nsatisfaction: {self.satisfaction}"
+        
+    def is_occupied(self):
+        if self.guests != []:
+            return True
+        return False
+
+    def clean(self):
+        self.clean_level = min(10, self.clean_level+self.rank ) 
+
+    def better_than(self, other):
+        if isinstance(other ,Room):
+            if (self.rank,self.floor,self.clean) > (other.rank, other.floor, other.clean):
+                return True
+            return False
+        else:
+            raise TypeError ("Other must be an instance of Room")
+
+    def check_in(self, guests):
+        if self.guests == []:
+            new_guests = []
+            for guest in guests:
+                guest = guest.lower()
+                new_guests.append(guest)
+            self.guests = new_guests
+            self.satisfaction = 1.0
+        else:
+            raise RoomError ("Cannot check-in new guests to an occupied room")
+        
+
+    def check_out(self):
+        if self.guests != []: 
+            self.guests = []
+        else:
+            raise RoomError ("Cannot checkout an empty room")
+    
+    def move_to(self, other):
+        if self.guests == []:
+            raise RoomError("Cannot move guests from an empty room")
+        if other.guests != []:
+            raise RoomError ("Cannot move guests into an occupied room")
+        else:
+            other.guests = self.guests
+            self.guests = []
+            if other.better_than(self):
+                other.satisfaction = min (5.0 , self.satisfaction+1.0)
+            else:
+                other.satisfaction = self.satisfaction
+            
+#########################################
+# Question 3 - do not delete this comment
+#########################################
+class Hotel:
+    def __init__(self, name, rooms):
+        self.name = name
+        self.rooms = rooms
+        
+            
+    def __repr__(self):
+        occ_roomm = 0
+        for room in self.rooms:
+            if room.is_occupied() == True:
+                occ_roomm+=1
+    
+        return f"{self.name} hotel has:\n{len(self.rooms)} rooms\n{occ_roomm} occupied rooms"
+                      
+    def check_in(self, guests, rank):
+       for room in self.rooms:
+           if room.guests == []:
+               if room.rank == rank:
+                   room.check_in(guests)
+                   return room 
+       return None
+      
+
+    def check_out(self, guest):
+        guest = guest.lower()
+        for room in self.rooms:
+            if guest in room.guests:
+                room.check_out()
+                return room
+        return None
+        
+    def upgrade(self, guest):
+        guest = guest.lower()
+        for room in self.rooms:
+            if guest in room.guests:
+                for b_room in self.rooms:
+                    if b_room.is_occupied()==False:
+                        if b_room.better_than(room)==True:
+                            room.move_to(b_room)
+                            return (b_room)
+                
+        else:
+            return None
+
+#########################################
+# Question 3 supplement - do not delete this comment
+#########################################
+def test_hotel():
+    m = Minibar({'coke': 10, 'lemonade': 7}, {'bamba': 8, 'mars': 12})
+    rooms = [Room(m, 15, 140, [], 5, 1), Room(m, 12, 101, ["Ronen", "Shir"], 6, 2),
+             Room(m, 1, 2, ["Liat"], 7, 1), Room(m, 2, 23, [], 6, 3)]
+    h = Hotel("Dan", rooms)
+    test_sep = '\n------------------'
+    print('PRINT h:\n', h, test_sep, sep="")
+    print(m)
+    print('PRINT h:\n', h, test_sep, sep="")
+    print('CALL: h.upgrade("Liat")\n', h.upgrade("Liat"), test_sep, sep="")
+    print('CALL: h.check_out("Ronen")\n', h.check_out("Ronen"), test_sep, sep="")
+    print('CALL: h.check_out("Ronen")\n', h.check_out("Ronen"), test_sep, sep="")
+    print('CALL: h.check_in(["Alice", "Wonder"], 2)\n', h.check_in(["Alice", "Wonder"], 2), test_sep, sep="")
+    print('CALL: h.check_in(["Alex"], 3)\n', h.check_in(["Alex"], 3), test_sep, sep="")
+    print('PRINT h:\n', h, test_sep, sep="")
+    print('CALL: h.check_in(["Oded", "Shani"], 3)\n', h.check_in(["Oded", "Shani"], 3), test_sep, sep="")
+    print('CALL: h.check_in(["Oded", "Shani"], 1)\n', h.check_in(["Oded", "Shani"], 1), test_sep, sep="")
+    print('CALL: h.check_out("Liat")\n', h.check_out("Liat"), test_sep, sep="")
+    print('CALL: h.check_out("Liat")\n', h.check_out("Liat"), test_sep, sep="")
+    print('PRINT h:\n', h, test_sep, sep="")
+
+
+#########################
+# main code - do not delete this comment
+# You can add more validation cases below
+#########################
+if __name__ == "__main__":
+    ##test_hotel() ## After you are done implenting all classes and methods, you may comment-in the call to test_hotel() and compare the results with the 
+     
+    drinks1 = {'coke':12 , 'rum': 25}
+    snacks1 = {'m&m':10 , 'cake':30}
+    m = Minibar(drinks1,snacks1) 
+    '''
+    print (m)
+    m.eat_a_snack('m&m')
+    print(m)
+    m.drink_a_drink('rum')
+    print (m)
+
+    snack1 = Minibar({'milk':2,'coke':4},{'snack1':5,'snack2':3})
+    print(snack1.bill)
+    snack1.eat_a_snack('snack3')
+    print(snack1)
+    print(snack1.snacks)
+    print(snack1.bill)
+    '''
+    
+    r = Room( m ,5,101,['YOssi','shuLi'],8,1,3)
+    print (r)
+    m = Minibar({'coke': 10, 'lemonade': 7}, {'bamba': 8, 'mars': 12})
+    rooms = Room(m, 15, 140, [] ,4,3,2)
+    print (rooms)
+    print (r.is_occupied())
+    print (rooms.is_occupied())
+    r.clean()
+    print (r)
+    
+    r1 = Room(m,2,23,["Dana","ron"],5,2)
+    r_better = Room(m,6,57,[],4,3)
+    print(r_better.better_than(r1))
+    r_better.check_in(['Amir'])
+    r_better.clean()
+    print (r_better.clean_level)
+    print (r1.is_occupied())
+    r1.check_out()
+    print(r1.is_occupied())
+    r_better.move_to(r1)
+    print(r1.satisfaction)
+    print(r1.guests)
+    r1.move_to(r_better)
+    print (r1.is_occupied())
+    print (r_better.satisfaction)
+    print (r_better.guests)
+    
+    h = Hotel("Best",[Room(m, 15, 140, [], 5, 1), Room(m, 1, 2, ["Liat"], 7, 3)]) 
+    print (h)
+    r1.minibar.eat_a_snack('bamba')
+    print(r1.minibar)
+    '''
+    test_hotel()
+    '''
+    '''
+    m = Minibar({'coke': 10, 'lemonade': 7}, {'bamba': 8, 'mars': 12})
+    a = Room(m,12,101,[],6,2)
+    b = Room(m,15,101,['TOM'],7,3)
+    c = Room(m,20,200,[],8,3)
+    rooms = [a,b,c]
+    h = Hotel('woldrof',rooms)
+    print (h.check_in (['tommy','tom'],2))
+    print('\n')
+    print (h.upgrade('tom'))
+    '''
